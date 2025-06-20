@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SocialTask Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        min-height: 600px;
+      }
+
+      .sidebar {
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        padding: 20px;
+      }
+
+      .chat-area {
+        display: flex;
+        flex-direction: column;
+        height: 600px;
+      }
+
+      .login-section {
+        padding: 20px;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: transform 0.2s;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .users-list {
+        margin-top: 20px;
+      }
+
+      .users-list h3 {
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 16px;
+      }
+
+      .user-item {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: 2px solid transparent;
+      }
+
+      .user-item:hover {
+        background: #e9ecef;
+      }
+
+      .user-item.selected {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+
+      .user-item.online {
+        border-left: 4px solid #28a745;
+      }
+
+      .chat-header {
+        padding: 15px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background: #fafafa;
+      }
+
+      .message {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .message.sent {
+        justify-content: flex-end;
+      }
+
+      .message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        word-wrap: break-word;
+      }
+
+      .message.sent .message-content {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .message.received .message-content {
+        background: white;
+        color: #333;
+        border: 1px solid #e9ecef;
+      }
+
+      .message-time {
+        font-size: 11px;
+        color: #999;
+        margin-top: 5px;
+      }
+
+      .chat-input {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .chat-input form {
+        display: flex;
+        gap: 10px;
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 25px;
+        font-size: 14px;
+      }
+
+      .chat-input input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .online-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>SocialTask Chat Test</h1>
+        <p>Real-time messaging with Socket.IO</p>
+      </div>
+
+      <!-- Login Section -->
+      <div id="loginSection" class="login-section">
+        <h2>Login to Start Chatting</h2>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter your email"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+        <button class="btn" onclick="login()">Login</button>
+        <div id="loginStatus"></div>
+        <div style="margin-top: 20px; text-align: center">
+          <p>
+            Don't have an account?
+            <a
+              href="/register.html"
+              style="color: #667eea; text-decoration: none; font-weight: 600"
+              >Register here</a
+            >
+          </p>
+        </div>
+      </div>
+
+      <!-- Chat Interface -->
+      <div id="chatInterface" class="main-content hidden">
+        <div class="sidebar">
+          <h3>Online Users</h3>
+          <div id="usersList" class="users-list"></div>
+        </div>
+
+        <div class="chat-area">
+          <div class="chat-header">
+            <h3 id="chatTitle">Select a user to start chatting</h3>
+            <span id="connectionStatus" class="status info">Connecting...</span>
+          </div>
+
+          <div id="chatMessages" class="chat-messages">
+            <div class="status info">
+              Welcome! Select a user from the sidebar to start chatting.
+            </div>
+          </div>
+
+          <div class="chat-input">
+            <form id="messageForm" onsubmit="sendMessage(event)">
+              <input
+                type="text"
+                id="messageInput"
+                placeholder="Type your message..."
+                disabled
+              />
+              <button type="submit" class="btn" disabled>Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket;
+      let currentUser = null;
+      let selectedUser = null;
+      let allUsers = [];
+
+      // Initialize Socket.IO connection
+      function initializeSocket() {
+        socket = io("http://localhost:5000");
+
+        socket.on("connect", () => {
+          updateConnectionStatus("Connected", "success");
+          if (currentUser) {
+            socket.emit("userOnline", currentUser.id);
+          }
+        });
+
+        socket.on("disconnect", () => {
+          updateConnectionStatus("Disconnected", "error");
+        });
+
+        socket.on("onlineUsers", (onlineUserIds) => {
+          updateUsersList(onlineUserIds);
+        });
+
+        socket.on("privateMessage", (message) => {
+          displayMessage(message);
+        });
+      }
+
+      // Login function
+      async function login() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const statusDiv = document.getElementById("loginStatus");
+
+        if (!email || !password) {
+          statusDiv.innerHTML =
+            '<div class="status error">Please fill in all fields</div>';
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:5000/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            currentUser = data.user;
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+            document.getElementById("loginSection").classList.add("hidden");
+            document.getElementById("chatInterface").classList.remove("hidden");
+
+            initializeSocket();
+            loadUsers();
+          } else {
+            statusDiv.innerHTML = `<div class="status error">${data.message}</div>`;
+          }
+        } catch (error) {
+          statusDiv.innerHTML =
+            '<div class="status error">Login failed. Please try again.</div>';
+        }
+      }
+
+      // Load all users
+      async function loadUsers() {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch("http://localhost:5000/api/auth/users", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+          allUsers = data.users.filter((user) => user._id !== currentUser.id);
+          updateUsersList([]);
+        } catch (error) {
+          console.error("Failed to load users:", error);
+        }
+      }
+
+      // Update users list
+      function updateUsersList(onlineUserIds) {
+        const usersList = document.getElementById("usersList");
+        usersList.innerHTML = "";
+
+        allUsers.forEach((user) => {
+          const isOnline = onlineUserIds.includes(user._id);
+          const isSelected = selectedUser && selectedUser._id === user._id;
+
+          const userDiv = document.createElement("div");
+          userDiv.className = `user-item ${isOnline ? "online" : ""} ${
+            isSelected ? "selected" : ""
+          }`;
+          userDiv.onclick = () => selectUser(user);
+
+          userDiv.innerHTML = `
+                    ${isOnline ? '<span class="online-indicator"></span>' : ""}
+                    <strong>${user.username}</strong>
+                    <br>
+                    <small>${user.email}</small>
+                `;
+
+          usersList.appendChild(userDiv);
+        });
+      }
+
+      // Select user to chat with
+      function selectUser(user) {
+        selectedUser = user;
+        document.getElementById(
+          "chatTitle"
+        ).textContent = `Chat with ${user.username}`;
+        document.getElementById("messageInput").disabled = false;
+        document.querySelector("#messageForm button").disabled = false;
+
+        // Update UI
+        document
+          .querySelectorAll(".user-item")
+          .forEach((item) => item.classList.remove("selected"));
+        event.target.closest(".user-item").classList.add("selected");
+
+        // Load previous messages
+        loadMessages(user._id);
+      }
+
+      // Load previous messages
+      async function loadMessages(userId) {
+        try {
+          const token = localStorage.getItem("token");
+          const response = await fetch(
+            `http://localhost:5000/api/chat/${userId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const messages = await response.json();
+          const chatMessages = document.getElementById("chatMessages");
+          chatMessages.innerHTML = "";
+
+          messages.forEach((message) => {
+            displayMessage(message);
+          });
+        } catch (error) {
+          console.error("Failed to load messages:", error);
+        }
+      }
+
+      // Send message
+      function sendMessage(event) {
+        event.preventDefault();
+
+        if (!selectedUser) return;
+
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+
+        if (!content) return;
+
+        const message = {
+          sender: currentUser.id,
+          receiver: selectedUser._id,
+          content: content,
+        };
+
+        socket.emit("privateMessage", message);
+        input.value = "";
+      }
+
+      // Display message
+      function displayMessage(message) {
+        const chatMessages = document.getElementById("chatMessages");
+        const isSent = message.sender === currentUser.id;
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isSent ? "sent" : "received"}`;
+
+        const time = new Date(message.createdAt).toLocaleTimeString();
+
+        messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${message.content}
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Update connection status
+      function updateConnectionStatus(message, type) {
+        const statusElement = document.getElementById("connectionStatus");
+        statusElement.textContent = message;
+        statusElement.className = `status ${type}`;
+      }
+
+      // Check if user is already logged in
+      window.onload = function () {
+        const savedUser = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+
+        if (savedUser && token) {
+          currentUser = JSON.parse(savedUser);
+          document.getElementById("loginSection").classList.add("hidden");
+          document.getElementById("chatInterface").classList.remove("hidden");
+          initializeSocket();
+          loadUsers();
+        }
+      };
+    </script>
+  </body>
+</html>
