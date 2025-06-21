@@ -93,7 +93,3 @@ SocialTask/
   package.json
   README.md
 ```
-
-## License
-
-MIT
