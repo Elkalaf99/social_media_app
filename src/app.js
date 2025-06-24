@@ -13,7 +13,7 @@ const chatSocket = require("./sockets/chatSocket");
 dotenv.config();
 
 const app = express();
-
+require('dotenv').config();
 app.use(express.json());
 app.use(cors());
 
