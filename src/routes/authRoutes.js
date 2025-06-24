@@ -13,6 +13,6 @@ router.post("/register", register);
 router.post("/login", login);
 router.put("/profile", auth, updateProfile);
 router.delete("/delete", auth, softDelete);
-router.get("/users", auth, getAllUsers);
+router.get("/users", getAllUsers);
 
 module.exports = router;
